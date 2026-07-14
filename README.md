@@ -24,6 +24,8 @@ npm run dev
 - MCP: `http://localhost:3001/mcp`
 - 動作確認: `http://localhost:3001/health`
 
+`/mcp`はStreamable HTTPのPOSTリクエストを受け付けます。このPoCはサーバー発イベントを使用しないため、GETとDELETEには`405 Method Not Allowed`を返します。
+
 本番相当の起動:
 
 ```bash

@@ -66,6 +66,15 @@ export async function handleMcpRequest(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  if (req.method !== "POST") {
+    res.writeHead(405, {
+      allow: "POST",
+      "content-type": "application/json; charset=utf-8",
+    });
+    res.end(JSON.stringify({ error: "Method not allowed" }));
+    return;
+  }
+
   const server = createMcpServer();
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
