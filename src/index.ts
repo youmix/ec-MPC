@@ -8,7 +8,10 @@ const httpServer = createServer(async (req, res) => {
     const requestUrl = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
     if (requestUrl.pathname === "/health" && req.method === "GET") {
-      res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      res.writeHead(200, {
+        "cache-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+      });
       res.end(JSON.stringify({ status: "ok" }));
       return;
     }
