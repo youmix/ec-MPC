@@ -1,0 +1,13 @@
+name = "amazon-slot-mcp"
+main = "src/worker.ts"
+compatibility_date = "2025-03-10"
+compatibility_flags = ["nodejs_compat"]
+
+# Bundle Slot rules as plain text (no filesystem on Workers)
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
+
+[observability]
+enabled = true

@@ -1,171 +1,153 @@
-# Amazon Slot Prompt MCP
+# Amazon Slot MCP（第一訴求画像）
 
-Amazon商品画像のSlotルールをChatGPTへ提供する、最小構成のTypeScript製MCPサーバーです。現在はSlot 1（メイン商品画像）のみ対応しています。
+日本のAmazon商品ページ向け **Slot 画像** を、ChatGPT Web の画像生成で作るための MCP です。
 
-MCPサーバーは画像を生成しません。`build_slot_prompt`が商品情報と[`rules/slot1.md`](rules/slot1.md)を統合し、ChatGPTの画像生成機能へそのまま渡せる指示文を返します。
+現在 **Slot1（第一訴求画像）** が利用可能です。Slot2〜6 は同じ構造で追加できます。
 
-## 必要環境
+## これは何か
 
-- Node.js 24
-- npm
-- ChatGPT Developer Modeを利用できるアカウントまたはワークスペース
-- GitHubアカウントとVercelアカウント（公開デプロイする場合）
-- ローカルで試す場合は、HTTPSの公開URLを作れるトンネル（Cloudflare Tunnelやngrokなど）
+| 誰が | 何をするか |
+| --- | --- |
+| あなた | Slot番号・商品タイトル・商品説明・商品補足を入力し、商品実物画像をチャットに添付する |
+| MCP | 指定 Slot の**固定ルール**を返す（画像生成APIは呼ばない） |
+| ChatGPT | 添付画像 + 商品情報 + Slotルールに従い、**完成した 1:1 画像を1枚生成**する |
 
-## 起動
+ユーザーに長い画像生成プロンプトを書かせるツールではありません。
+
+## 公開 URL
+
+| 用途 | URL |
+| --- | --- |
+| **ChatGPT に登録する MCP URL** | `https://amazon-slot-mcp.hiroyuki.workers.dev/mcp` |
+| 動作確認（ブラウザ） | `https://amazon-slot-mcp.hiroyuki.workers.dev/health` |
+
+ブラウザで `/mcp` を開いても画像は出ません。ChatGPT のコネクタ経由で使います。
+
+---
+
+## 使い方（ChatGPT）
+
+### 1回だけの準備
+
+#### ① Developer Mode をオン
+
+1. ChatGPT を開く  
+2. **Settings（設定）→ Apps & Connectors（アプリとコネクタ）→ Advanced settings（詳細設定）**  
+3. **Developer Mode** を有効にする  
+
+#### ② コネクタを登録
+
+1. **Settings → Connectors**  
+2. **Create** または **Add custom connector**  
+3. 次を入力する  
+
+| 項目 | 入力 |
+| --- | --- |
+| 名前 | `AmazonGenerator` など任意 |
+| **MCP Server URL** | `https://amazon-slot-mcp.hiroyuki.workers.dev/mcp` |
+| Authentication | **No authentication** |
+
+4. 保存  
+
+#### ③ チャットでコネクタをオン
+
+1. **新しいチャット**を開く  
+2. ツール／コネクタ一覧でコネクタを有効にする  
+
+---
+
+### 毎回の使い方（これだけでよい）
+
+1. チャットに **商品の実物画像を添付**  
+2. コネクタを指定し、次のように送る  
+
+```text
+@AmazonGenerator
+
+Slot1
+
+商品タイトル：
+トリケラトプス ぬいぐるみ
+
+商品説明：
+ここに商品説明全文
+
+商品補足：
+ここに任意の補足情報
+```
+
+長い定型指示（「添付画像をもとに画像を生成してください」「1:1画像を作成してください」など）は**不要**です。
+
+---
+
+### うまくいったときの流れ
+
+1. ChatGPT が `slot1` ツールを呼ぶ  
+2. MCP が Slot1 固定ルールと「完成画像を今すぐ生成せよ」という指示を返す  
+3. ChatGPT が会話内の添付画像と商品情報を使い、画像生成して **完成画像が1枚** 表示される  
+
+### 失敗例
+
+- プロンプト文だけ出して終わる  
+- 元画像をそのまま返す  
+- 白背景の商品単体（検索メイン画像風）になる  
+- 説明にない機能・付属品が追加される  
+
+やり直すときは:
+
+```text
+プロンプトではなく、完成した1:1の訴求画像を生成して表示して。
+添付の商品画像は変えないで。
+```
+
+---
+
+## Tools
+
+| Tool | 用途 |
+| --- | --- |
+| `slot1` | **通常はこれ。** Slot1 固定ルールを返し、完成画像生成を要求する |
+| `generate_slot_image` | `slot1` の後方互換エイリアス |
+
+### 入力（共通）
+
+| 項目 | 必須 | 内容 |
+| --- | --- | --- |
+| `product_title` | はい | 商品タイトル |
+| `product_description` | はい | 商品説明 |
+| `product_supplement` | いいえ | 商品補足 |
+
+商品実物画像はツール引数ではなく、**現在のチャットへの添付**を使用します。
+
+---
+
+## Slot1 ルール要約
+
+- Amazon商品ページ内の**第一訴求画像**（検索結果メイン画像ではない）  
+- 白背景固定禁止  
+- 添付の商品実物画像を保持（形状・色・柄・素材・ロゴ・印刷などを変更しない）  
+- 説明から事実を抽出し、訴求軸は1つ  
+- 画像上部に大きな日本語タイトル + 短い英語装飾  
+- 1:1 の完成画像を1枚生成（プロンプトのみ返却は禁止）  
+- MCP 自身は外部画像生成APIを呼ばない  
+
+詳細は [`rules/slot1.md`](rules/slot1.md)。
+
+---
+
+## デプロイ（開発者向け）
 
 ```bash
 npm install
-npm run dev
-```
-
-既定では次のURLで待ち受けます。
-
-- MCP: `http://localhost:3001/mcp`
-- 動作確認: `http://localhost:3001/health`
-
-`/mcp`はStreamable HTTPのPOSTリクエストを受け付けます。このPoCはサーバー発イベントを使用しないため、GETとDELETEには`405 Method Not Allowed`を返します。
-
-本番相当の起動:
-
-```bash
+npm run check
 npm run build
-npm start
+npm run test:smoke
+npm run deploy
 ```
 
-ポートは環境変数で変更できます。
+## ローカル（開発者向け）
 
 ```bash
-PORT=8080 npm start
+npm run dev          # Node http://localhost:3001/mcp
+npm run dev:worker   # Workers 相当
 ```
-
-## VercelへGitHub連携でデプロイ
-
-このリポジトリにはVercel Functions用の`api/mcp.ts`と`vercel.json`が含まれています。環境変数やデータベースは不要です。
-
-`public`はVercelのビルド出力先として置いている空ディレクトリです。`npm run build`の最後に必ず生成されるため、Vercelの`Missing public directory`エラーを防ぎます。画面や静的サイトは提供しません。
-
-1. このプロジェクトをGitHubリポジトリへpushします。
-2. [Vercel Dashboard](https://vercel.com/new)で **Add New → Project** を開きます。
-3. GitHubを接続し、pushしたリポジトリを **Import** します。
-4. **Framework Preset** は **Other** のままにします。
-5. Root Directoryは、この`package.json`と`vercel.json`が存在するディレクトリを選びます。リポジトリ直下なら変更不要です。
-6. Build Command、Output Directory、Environment Variablesは設定せず、**Deploy** を実行します。
-7. デプロイ後、ブラウザで`https://<project-name>.vercel.app/health`を開き、`{"status":"ok"}`が返ることを確認します。
-
-ChatGPTへ登録するMCP URL:
-
-```text
-https://<project-name>.vercel.app/mcp
-```
-
-`main`ブランチへpushするとProduction Deploymentが更新され、他のブランチやPull RequestへのpushではPreview Deploymentが作られます。ChatGPTの常設コネクターには、変わらないProduction URLを使用してください。
-
-## ChatGPT Developer Modeへの登録
-
-ChatGPTからはインターネット経由で到達できるHTTPS URLが必要です。VercelへデプロイしたURL、またはローカルサーバーをトンネルで公開したURLを使用してください。登録するURLの末尾には必ず`/mcp`を付けます。
-
-例: `https://your-domain.example/mcp`
-
-`http://localhost:3001/mcp`、`http://127.0.0.1:3001/mcp`、LAN内IPは登録できません。これらを入力すると`Unsafe URL`になるため、必ず公開された`https://` URLを使ってください。
-
-### Cloudflare Tunnelでローカル確認する場合
-
-ターミナル1でMCPサーバーを起動します。
-
-```bash
-npm run dev
-```
-
-ターミナル2で一時的な公開URLを作ります。
-
-```bash
-cloudflared tunnel --url http://localhost:3001
-```
-
-表示されたURLが、たとえば次の場合:
-
-```text
-https://random-words.trycloudflare.com
-```
-
-ChatGPTのMCP Server URLには、末尾に`/mcp`を追加して登録します。
-
-```text
-https://random-words.trycloudflare.com/mcp
-```
-
-両方のプロセスを起動したまま使用してください。CloudflareのQuick Tunnel URLは再起動すると変わるため、その場合はコネクターURLも更新します。
-
-1. ChatGPTの **Settings（設定）→ Apps & Connectors（アプリとコネクタ）→ Advanced settings（詳細設定）** でDeveloper Modeを有効にします。
-2. **Settings → Connectors** からコネクタ作成画面を開きます（表示によっては **Create** または **Add custom connector**）。
-3. 名前に任意の名前（例: `Amazon Slot Prompt`）、MCP Server URLに公開した`https://.../mcp`を入力します。
-4. このPoCは認証を実装していないため、Authenticationは **No authentication** を選びます。
-5. 保存後、新しいチャットのツール／コネクタ一覧で作成したコネクタを有効にします。
-
-> 設定項目の名称はChatGPTの更新やワークスペース設定で異なる場合があります。Developer Modeやカスタムコネクタが表示されない場合は、プラン・ロール・管理者ポリシーを確認してください。
-
-## 使用例
-
-ChatGPTでコネクタを有効にして、次のように依頼します。
-
-```text
-build_slot_promptを使って次の商品用のSlot 1画像を生成してください。
-
-商品名: ステンレス真空ボトル 500ml
-商品説明: マットブラック。ねじ式の蓋。保温・保冷対応。
-補足情報: ボトル本体のみ。ロゴなし。
-```
-
-ツール入力:
-
-```json
-{
-  "product_title": "ステンレス真空ボトル 500ml",
-  "product_description": "マットブラック。ねじ式の蓋。保温・保冷対応。",
-  "supplementary_info": "ボトル本体のみ。ロゴなし。"
-}
-```
-
-## Tool仕様
-
-### `build_slot_prompt`
-
-| 入力 | 型 | 必須 | 内容 |
-| --- | --- | --- | --- |
-| `product_title` | string | はい | 商品名 |
-| `product_description` | string | いいえ | 商品の説明、特徴、仕様 |
-| `supplementary_info` | string | いいえ | 追加条件、ブランド情報、避けたい表現 |
-
-返却値は画像生成用の詳細なテキスト指示です。画像生成API、データベース、認証、UIは含みません。
-
-## ルールの変更
-
-Slot 1のルールは[`rules/slot1.md`](rules/slot1.md)にあります。ファイルはTool実行のたびに読み込まれるため、開発中はルール変更後のサーバー再起動は不要です。
-
-## 構成
-
-```text
-.
-├── rules/
-│   └── slot1.md
-├── public/
-│   └── .gitkeep
-├── scripts/
-│   └── prepare-output.mjs
-├── api/
-│   ├── health.ts
-│   └── mcp.ts
-├── src/
-│   ├── index.ts
-│   └── mcp.ts
-├── .gitignore
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vercel.json
-```
-
-## セキュリティ上の注意
-
-認証なしの公開URLはURLを知る人なら呼び出せます。この構成はPoC専用です。継続運用する場合は、HTTPS対応ホスティング、OAuthなどの認証、レート制限、ログ方針を別途設計してください。

@@ -1,17 +1,21 @@
 {
   "name": "amazon-slot-mcp",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
-  "description": "Minimal MCP server that builds Amazon Slot image prompts for ChatGPT",
+  "description": "MCP that returns fixed Amazon Slot rules so ChatGPT Web generates product appeal images",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:worker": "wrangler dev",
     "build": "tsc -p tsconfig.json && node scripts/prepare-output.mjs",
     "start": "node dist/src/index.js",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test:smoke": "npm run build && node scripts/smoke-test.mjs",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
@@ -20,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.20.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "wrangler": "^4.0.0"
   }
 }
