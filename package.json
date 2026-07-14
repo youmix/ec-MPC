@@ -6,7 +6,7 @@
   "description": "Minimal MCP server that builds Amazon Slot image prompts for ChatGPT",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/prepare-output.mjs",
     "start": "node dist/src/index.js",
     "check": "tsc -p tsconfig.json --noEmit"
   },
