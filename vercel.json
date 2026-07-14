@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/mcp.ts": {
+      "includeFiles": "rules/slot1.md",
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/mcp",
+      "destination": "/api/mcp"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    }
+  ]
+}
